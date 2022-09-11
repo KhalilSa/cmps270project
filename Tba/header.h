@@ -5,7 +5,8 @@
 #define ROW 6
 #define COLUMN 7
 
-void print_dashed_line();
-void print_grid_body();
+void print_dashed_line(void);
+void print_board(char board[ROW][COLUMN]);
+void initialize_board(char board[ROW][COLUMN]);
 
 #endif

@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1662912479 source:/home/abesama/CMPS270/Project/Tba/main.c
+	<stdio.h>
+	<string.h>
+	"header.h"
+
+1662912479 /home/abesama/CMPS270/Project/Tba/header.h
+
