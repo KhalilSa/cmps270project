@@ -16,18 +16,13 @@ int main(int argc, char **argv) {
 	name1[strcspn(name1, "\n")] = 0;
     name2[strcspn(name2, "\n")] = 0;
 
+    // welcoming messages
 	printf("Welcome %s and %s to 4-connect!!\n", name1, name2);
 	printf("Generating 7x6 grid (classic) ...\n");
 
+	// print grid
 	print_dashed_line();
-
-    for (int i = 0; i < ROW; i++) {
-        for (int j = 0; j < COLUMN; j++) {
-            printf("|0");
-        }
-        printf("|\n");
-    }
-
+    print_grid_body();
 	print_dashed_line();
 
 	return 0;
@@ -38,4 +33,13 @@ void print_dashed_line() {
         printf("-");
 	}
 	printf("\n");
+}
+
+void print_grid_body() {
+    for (int i = 0; i < ROW; i++) {
+        for (int j = 0; j < COLUMN; j++) {
+            printf("|0");
+        }
+        printf("|\n");
+    }
 }
