@@ -20,7 +20,8 @@ void fill_column(int column);
 int check_winner(char token);
 void trim_trailing(char *str);
 int is_string_numeric(char *str);
-void print_dashed_line(const int N);
+void print_dashed_line(const unsigned int N);
+int check_valid_name(char *name);
 int generate_random_int(int lower, int upper);
 double choose_with_timer(void (*choose)());
 
@@ -30,19 +31,29 @@ int main() {
 
     // get players' names
     char name1[MAX_INPUT]; char name2[MAX_INPUT];
-    printf("Enter first player's name: ");
-    fgets(name1, sizeof(name1), stdin);
-    trim_trailing(name1);
+
+    while (1) {
+        printf("\nEnter first player's name: ");
+        fgets(name1, sizeof(name1), stdin);
+        trim_trailing(name1);
+        int valid = check_valid_name(name1);
+        if (valid) break;
+        printf("Invalid name! name should not have spaces and can't start with \\n.");
+    }
+    
 
     while (1) {
         printf("\nEnter second player's name: ");
         fgets(name2, sizeof(name2), stdin);
         trim_trailing(name2);
         // validate name
-        if (strcmp(name1, name2) != 0) {
-            break;
+        int valid = check_valid_name(name2);
+        if (valid) {
+            if (strcmp(name1, name2) != 0) break;
+            puts("That name is already taken. Enter an another name.");
+        } else {
+            puts("Invalid name! name should not have spaces and can't start with \\n.");
         }
-        puts("That name is already taken. Enter an another name.");
     }
     
     // generate random number (token)
@@ -103,8 +114,8 @@ void init_board() {
 
 void print_board() {
     print_dashed_line(2 * COLS + 1);
-    for (char i = 0; i < ROWS; i++) {
-        for (char j = 0; j < COLS; j++) {
+    for (int i = 0; i < ROWS; i++) {
+        for (int j = 0; j < COLS; j++) {
             printf("|%d", board[i][j]);
         }
         printf("|\n");
@@ -159,7 +170,8 @@ int check_winner(char token) {
             if (board[i][j] == token && board[i][j+1] == token && 
                 board[i][j+2] == token && board[i][j+3] == token){
                 return 1;
-            }           
+            }
+
         }
     }
     // vertical Checking
@@ -212,6 +224,7 @@ void trim_trailing(char *str) {
     @returns 1 if the string is numeric
              0 otherwise
 */
+
 int is_string_numeric(char *str) {
     if (str == NULL) {
         return 0;
@@ -226,11 +239,25 @@ int is_string_numeric(char *str) {
     return 1;
 }
 
-void print_dashed_line(const int N) { 
+void print_dashed_line(const unsigned int N) { 
     for (unsigned int i = 0; i < N; i++) {
         printf("-");
     }
 	printf("\n");
+}
+
+int check_valid_name(char *name) {
+    if (name == NULL || name[0] == '\n') {
+        return 0;
+    }
+    int i = 0;
+    // check if the string only includes digits
+    while (name[i] != '\0') {
+        if (isspace(name[i])) return 0;
+        i++;
+    }
+
+    return 1;
 }
 
 // generates random integer between lower and upper
@@ -243,7 +270,7 @@ int generate_random_int(int lower, int upper) {
 
 double choose_with_timer(void (*choose)()) {
     time_t start = time(NULL);
-    //Do your operations here
+    // callback for choose 
     choose();
     double duration = (double)(time(NULL) - start);
     printf("took %.2f seconds", duration);
