@@ -104,6 +104,7 @@ int main() {
     return 0; 
 }
 
+// initialize the connect four board with zeros (empty) 
 void init_board() {
     for (unsigned int i = 0; i < ROWS; i++) {
         for (unsigned int j = 0; j < COLS; j++) {
@@ -112,6 +113,7 @@ void init_board() {
     }
 }
 
+// print the connect four board with the current state of the game 
 void print_board() {
     print_dashed_line(2 * COLS + 1);
     for (int i = 0; i < ROWS; i++) {
@@ -123,6 +125,7 @@ void print_board() {
     print_dashed_line(2 * COLS + 1);
 }
 
+// choose a column to drop the token in so that the token falls to the bottom of the column depending on the current state of the board
 void choose() {
     char column_user_input[MAX_INPUT];
     while (1) {
@@ -153,6 +156,10 @@ void choose() {
     }
 }
 
+/* '
+    Requires: column is a valid column number (0-6) and the column is not full (the top of the column is empty) 
+    Effects: fills the column with the current token (1 or 2) and drops the token to the bottom of the column
+*/
 void fill_column(int column) {
     for (unsigned int i = ROWS - 1; i >= 0; i--) {
         if (board[i][column] == EMPTY) {
@@ -162,6 +169,11 @@ void fill_column(int column) {
     }               
 }
 
+/*  
+    Requires: token is either 1 or 2 either representing red or yellow respectively 
+    Effects: checks if the current player has won the game by checking all possible winning 
+    combinations row, column, and diagonals then returns 1 if the player has won and 0 otherwise
+*/
 int check_winner(char token) {
 
     // horizontal Checking
@@ -205,7 +217,8 @@ int check_winner(char token) {
 }
 
 /*
-    removes trailing whitespaces and newlines from a string
+    Requires: str is a string with a trailing newline character that needs to be removed
+    Effects: removes the trailing newline character from the string
 */
 void trim_trailing(char *str) {
     unsigned int index = strlen(str) - 1;
@@ -220,9 +233,8 @@ void trim_trailing(char *str) {
 }
 
 /*
-    Check if a string has only numeric character
-    @returns 1 if the string is numeric
-             0 otherwise
+    Requires: a string
+    Effects: Check if a string has only numeric characters and returns 1 if it does and 0 otherwise
 */
 
 int is_string_numeric(char *str) {
@@ -239,6 +251,10 @@ int is_string_numeric(char *str) {
     return 1;
 }
 
+/*
+    Requires: n is the number of dashes to print
+    Effects: prints n dashes to the screen and a newline character at the end 
+*/
 void print_dashed_line(const unsigned int N) { 
     for (unsigned int i = 0; i < N; i++) {
         printf("-");
@@ -246,6 +262,11 @@ void print_dashed_line(const unsigned int N) {
 	printf("\n");
 }
 
+/*
+    Requires: char *name is a string representing the name of the player and name 
+    should not have spaces or a newline character and can not be a number
+    Effects: returns 1 if the name is valid and 0 otherwise
+*/
 int check_valid_name(char *name) {
     if (name == NULL || name[0] == '\n') {
         return 0;
@@ -260,7 +281,10 @@ int check_valid_name(char *name) {
     return 1;
 }
 
-// generates random integer between lower and upper
+/*
+    Requires: lower and upper are valid integers and lower < upper
+    Effects: returns a random integer between lower and upper 
+*/
 int generate_random_int(int lower, int upper) {
     // initialize a unique seed
     srand(time(0));
@@ -268,6 +292,9 @@ int generate_random_int(int lower, int upper) {
     return num;
 }
 
+/*
+    Effects: returns the duration of the round
+*/
 double choose_with_timer(void (*choose)()) {
     time_t start = time(NULL);
     // callback for choose 
