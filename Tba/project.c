@@ -17,10 +17,19 @@
 #define COLS 7
 #define MAX_INPUT 20
 
+// Structures
+typedef struct {
+    int column, score;
+} BestMove;
+
+// Enums
+
 enum MODE {PLAYER_VS_PLAYER, PLAYER_VS_AI};
 enum TOKEN {EMPTY, RED, YELLOW};
 enum AGENT {PLAYER, AI};
 enum AI_DIFFICULTY {RANDOM, EASY = 2, MEDIUM = 4, HARD = 6};
+
+// Global Variables
 
 int g_column = 0;
 int g_token = RED;
@@ -57,7 +66,7 @@ int count_token(int* arr, int token, int start, int end);
 // Bot functions
 
 int make_move(int **board);
-void minimax(int **board, int depth, int alpha, int beta, int is_maximazing_player, int *column, int *score);
+BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_player);
 int* get_valid_locations(int **board);
 int score_board(int** board, int token);
 int random_valid_column(int* valid_columns);
@@ -413,63 +422,58 @@ void string_to_lower_case(char* str) {
     Makes an intellegent move
 */
 int make_move(int **board) {
-    int column;
-    int score;
-    minimax(board, g_difficulty, -__INT_MAX__, __INT_MAX__, g_ai_piece, &column, &score);
-    // int *valid_locations = get_valid_locations(board);
-    // int best_score = 0;
-    // int best_col = random_valid_column(valid_locations);
-    // for (int col = 0; col < COLS; col++) {
-    //     if (!valid_locations[col]) continue;
-    //     int** board_copy = (int**) alloca(ROWS * sizeof(int *));
-    //     for (int i = 0; i < ROWS; i++) {
-    //         board_copy[i] = (int *) alloca(COLS * sizeof(int));
-    //     }
-    //     copy_board(board, board_copy);
-    //     fill_column(board_copy, col, g_ai_piece);
-    //     int score = score_board(board_copy, g_ai_piece);
-    //     if (score > best_score) {
-    //         best_score = score;
-    //         best_col = col;
-    //     }
-    // }
-    // return best_col;
-    return column;
+    int *valid_locations = get_valid_locations(board);
+    int best_score = 0;
+    int best_col = random_valid_column(valid_locations);
+    for (int col = 0; col < COLS; col++) {
+        if (!valid_locations[col]) continue;
+        int** board_copy = (int**) alloca(ROWS * sizeof(int *));
+        for (int i = 0; i < ROWS; i++) {
+            board_copy[i] = (int *) alloca(COLS * sizeof(int));
+        }
+        copy_board(board, board_copy);
+        fill_column(board_copy, col, g_ai_piece);
+        int score = score_board(board_copy, g_ai_piece);
+        if (score > best_score) {
+            best_score = score;
+            best_col = col;
+        }
+    }
+    return best_col;
+    //return minimax(board, g_difficulty, -__INT_MAX__, __INT_MAX__, g_ai_piece).column;
 }
 
-void minimax(int **board, int depth, int alpha, int beta, int is_maximazing_player, int *column, int *score) {
+BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_player) {
     int *valid_locations = get_valid_locations(board);
     int ai_won = check_winner(board, g_ai_piece);
     int player_won = check_winner(board, g_player_piece);
     int board_full = g_moves >= ROWS * COLS ? 1 : 0;
     int is_game_over = ai_won || player_won || board_full;
+    int score;
+    int column;
     if (depth == 0 || is_game_over) {
         if (is_game_over) { 
             if (ai_won) {
-                *column = -1;
-                *score  = 10000;
+                return (BestMove){-1, 10000};
             }
             else if (player_won) {
-                *column = -1;
-                *score  = -10000;
+                return (BestMove){-1, -10000};
             } 
             // draw
             else {
-                *column = 0;
-                *score = 0;
+                return (BestMove){-1, 0};
             }
         }
         // depth = 0
         else {
-            *column = -1;
-            *score  = score_board(board, g_ai_piece);
+            score = score_board(board, g_ai_piece);
+            return (BestMove){-1, score};
         }
-        return;
     }
 
     if (is_maximazing_player) {
-        *score = -__INT32_MAX__;
-        *column = random_valid_column(valid_locations);
+        score = -__INT32_MAX__;
+        column = random_valid_column(valid_locations);
         for (int col = 0; col < COLS; col++) {
             if (valid_locations[col]) {
                 int** board_copy = (int**) alloca(ROWS * sizeof(int *));
@@ -477,22 +481,21 @@ void minimax(int **board, int depth, int alpha, int beta, int is_maximazing_play
                     board_copy[i] = (int *) alloca(COLS * sizeof(int));
                 }
                 copy_board(board, board_copy);
-                fill_column(board_copy, *column, g_ai_piece);
-                int new_score = 0;
-                int new_column = 0;
-                minimax(board_copy, depth - 1, alpha, beta, 0, &new_column, &new_score);
-                if (new_score > *score) {
-                    *score = new_score;
-                    *column = col;
+                fill_column(board_copy, column, g_ai_piece);
+                int new_score = minimax(board_copy, depth - 1, alpha, beta, 0).score;
+                if (new_score > score) {
+                    score = new_score;
+                    column = col;
                 }
-                alpha = max(alpha, *score);
+                alpha = max(alpha, score);
                 if (alpha >= beta) break;
             }
         }
+        return (BestMove) {column, score};
     }
     else {
-       *score = __INT32_MAX__;
-       *column = random_valid_column(valid_locations);
+       score = __INT32_MAX__;
+       column = random_valid_column(valid_locations);
         for (int col = 0; col < COLS; col++) {
             if (valid_locations[col]) {
                 int** board_copy = (int**) alloca(ROWS * sizeof(int *));
@@ -500,18 +503,17 @@ void minimax(int **board, int depth, int alpha, int beta, int is_maximazing_play
                     board_copy[i] = (int *) alloca(COLS * sizeof(int));
                 }
                 copy_board(board, board_copy);
-                fill_column(board_copy, *column, g_player_piece);
-                int new_score = 0;
-                int new_column = 0;
-                minimax(board_copy, depth - 1, alpha, beta, 1, &new_column, &new_score);
-                if (new_score < *score) {
-                    *score = new_score;
-                    *column = col;
+                fill_column(board_copy, column, g_player_piece);
+                int new_score = minimax(board_copy, depth - 1, alpha, beta, 1).score;
+                if (new_score < score) {
+                    score = new_score;
+                    column = col;
                 }
-                alpha = max(alpha, *score);
+                alpha = max(alpha, score);
                 if (alpha >= beta) break;
             }
         }
+        return (BestMove) {column, score};
     }
 }
 
@@ -559,6 +561,7 @@ int score_board(int** board, int token) {
     }
     int center_tokens_num = count_token(center_column, token, 0, ROWS);
     score += center_tokens_num * 6;
+
     // Score Horizontal
     for (int i = 0; i < ROWS; i++) {
         int* row_array = board[i];
@@ -576,8 +579,8 @@ int score_board(int** board, int token) {
             col_array[i] = board[i][j];
         }
         for (int i = 0; i < ROWS - 3; i++) {
-            int start = j;
-            int end = j + 4;
+            int start = i;
+            int end = i + 4;
             score += score_bucket(col_array, token, start, end);
         }
     }
