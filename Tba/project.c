@@ -4,7 +4,6 @@
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
-#include <assert.h>
 
 // macros
 
@@ -17,6 +16,8 @@
 #define COLS 7
 #define MAX_INPUT 20
 
+#define DEBUG 0
+
 // Structures
 typedef struct {
     int column, score;
@@ -28,6 +29,9 @@ enum MODE {PLAYER_VS_PLAYER, PLAYER_VS_AI};
 enum TOKEN {EMPTY, RED, YELLOW};
 enum AGENT {PLAYER, AI};
 enum AI_DIFFICULTY {RANDOM, EASY = 2, MEDIUM = 4, HARD = 6};
+
+typedef int Boolean;
+enum { False, True };
 
 // Global Variables
 
@@ -45,16 +49,16 @@ unsigned int g_moves = 0;
 void init_board(int** board);
 void choose(int** board, int mode);
 void fill_column(int **board, int column, int player);
-int check_winner(int **board, int token);
+Boolean check_winner(int **board, int token);
 double choose_with_timer(int **board, int mode, void (*choose)(int** board, int mode));
 
 // String/UI functions  
 
 void print_board(int** board);
 void trim_trailing(char *str);
-int is_string_numeric(char *str);
+Boolean is_string_numeric(char *str);
 void print_dashed_line(const unsigned int N);
-int check_valid_name(char *name);
+Boolean check_valid_name(char *name);
 
 // helper functions
 
@@ -66,7 +70,7 @@ int count_token(int* arr, int token, int start, int end);
 // Bot functions
 
 int make_move(int **board);
-BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_player);
+BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximazing_player);
 int* get_valid_locations(int **board);
 int score_board(int** board, int token);
 int random_valid_column(int* valid_columns);
@@ -83,7 +87,7 @@ int main() {
     // get players' names
     char name1[MAX_INPUT]; char name2[MAX_INPUT];
 
-    while (1) {
+    while (True) {
         printf("\nEnter first player's name: ");
         fgets(name1, sizeof(name1), stdin);
         trim_trailing(name1);
@@ -95,9 +99,9 @@ int main() {
     // AI vs Player Mode or Player vs Player Mode
     char which_mode[MAX_INPUT];
     int mode = PLAYER_VS_PLAYER;
-    while (1) {
+    while (True) {
         printf("Do you want to play againt the computer?[Y/N]: ");
-        fgets(which_mode, sizeof(which_mode), stdin);
+        fgets(which_mode, MAX_INPUT, stdin);
         trim_trailing(which_mode);
         string_to_lower_case(which_mode);
         if (strcmp(which_mode, "yes") == 0 || strcmp(which_mode, "y") == 0) {
@@ -112,16 +116,33 @@ int main() {
 
     if (mode == PLAYER_VS_AI) {
         char difficulty[MAX_INPUT];
-        while (1) {
+        printf("Difficulties\n");
+        printf("1. Random\t 2. Easy\t 3. Medium\t 4. Hard\n");
+        while (True) {
             printf("Choose AI difficulty (default=Easy): \n");
-            printf("1. Random\t2. Easy\t3. Medium\t4. Hard\n");
-            
+            fgets(difficulty, MAX_INPUT, stdin);
+            if (strcmp(difficulty, "\n") == 0) break;
+            trim_trailing(difficulty);
+            string_to_lower_case(difficulty);
+            if (strcmp(difficulty, "random") == 0 || strcmp(difficulty, "1") == 0) {
+                g_difficulty = RANDOM;
+            } else if (strcmp(difficulty, "easy") == 0 || strcmp(difficulty, "2") == 0) {
+                g_difficulty = EASY;
+            } else if (strcmp(difficulty, "medium") == 0 || strcmp(difficulty, "3") == 0) {
+                g_difficulty = MEDIUM;
+            } else if (strcmp(difficulty, "hard") == 0 || strcmp(difficulty, "4") == 0) {
+                g_difficulty = HARD;
+            } else {
+                printf("Invalid Input, choose one of the difficulties or hit enter to choose the default.");
+                continue;
+            }
+            break;
         }
     }
     
     
     if (mode == PLAYER_VS_PLAYER) {
-        while (1) {
+        while (True) {
             printf("\nEnter second player's name: ");
             fgets(name2, sizeof(name2), stdin);
             trim_trailing(name2);
@@ -163,7 +184,7 @@ int main() {
     print_board(board);
 
     // main game loop
-    while (1) {
+    while (True) {
         // announce the winner in case of a tie (the board is full but no winner)
         // the winner in that case is the one who took less time
         if (g_moves >= ROWS * COLS) {
@@ -290,14 +311,14 @@ void fill_column(int **board, int column, int token) {
     Effects: checks if the current player has won the game by checking all possible winning 
     combinations row, column, and diagonals then returns 1 if the player has won and 0 otherwise
 */
-int check_winner(int **board, int token) {
+Boolean check_winner(int **board, int token) {
 
     // horizontal Checking
     for (int j = 0; j < COLS-3 ; j++ ) {
         for (int i = 0; i < ROWS; i++) {
             if (board[i][j] == token && board[i][j+1] == token && 
                 board[i][j+2] == token && board[i][j+3] == token){
-                return 1;
+                return True;
             }
         }
     }
@@ -307,7 +328,7 @@ int check_winner(int **board, int token) {
         for (int j = 0; j<COLS; j++) {
             if (board[i][j] == token && board[i+1][j] == token && 
                 board[i+2][j] == token && board[i+3][j] == token){
-                return 1;
+                return True;
             }           
         }
     }
@@ -317,7 +338,7 @@ int check_winner(int **board, int token) {
         for (int j=0; j < COLS-3; j++) {
             if (board[i][j] == token && board[i-1][j+1] == token && 
                 board[i-2][j+2] == token && board[i-3][j+3] == token)
-                return 1;
+                return True;
         }
     }
     // descending Diagonal Check
@@ -325,11 +346,11 @@ int check_winner(int **board, int token) {
         for (int j=3; j < COLS; j++) {
             if (board[i][j] == token && board[i-1][j-1] == token && 
                 board[i-2][j-2] == token && board[i-3][j-3] == token)
-                return 1;
+                return True;
         }
     }
 
-    return 0;       
+    return False;       
 }
 
 /*
@@ -354,18 +375,18 @@ void trim_trailing(char *str) {
     Effects: Check if a string has only numeric characters and returns 1 if it does and 0 otherwise
 */
 
-int is_string_numeric(char *str) {
+Boolean is_string_numeric(char *str) {
     if (str == NULL) {
-        return 0;
+        return False;
     }
     int i = 0;
     // check if the string only includes digits
     while (str[i] != '\0') {
-        if (!isdigit(str[i])) return 0;
+        if (!isdigit(str[i])) return False;
         i++;
     }
 
-    return 1;
+    return True;
 }
 
 /*
@@ -384,18 +405,18 @@ void print_dashed_line(const unsigned int N) {
     should not have spaces or a newline character and can not be a number
     Effects: returns 1 if the name is valid and 0 otherwise
 */
-int check_valid_name(char *name) {
+Boolean check_valid_name(char *name) {
     if (name == NULL || name[0] == '\n') {
-        return 0;
+        return False;
     }
     int i = 0;
     // check if the string only includes digits
     while (name[i] != '\0') {
-        if (isspace(name[i])) return 0;
+        if (isspace(name[i])) return False;
         i++;
     }
 
-    return 1;
+    return True;
 }
 
 /*
@@ -432,42 +453,45 @@ void string_to_lower_case(char* str) {
     Makes an intellegent move
 */
 int make_move(int **board) {
-    // int *valid_locations = get_valid_locations(board);
-    // int best_score = 0;
-    // int best_col = random_valid_column(valid_locations);
-    // for (int col = 0; col < COLS; col++) {
-    //     if (!valid_locations[col]) continue;
-    //     int** board_copy = (int**) alloca(ROWS * sizeof(int *));
-    //     for (int i = 0; i < ROWS; i++) {
-    //         board_copy[i] = (int *) alloca(COLS * sizeof(int));
-    //     }
-    //     copy_board(board, board_copy);
-    //     fill_column(board_copy, col, g_ai_piece);
-    //     int score = score_board(board_copy, g_ai_piece);
-    //     if (score > best_score) {
-    //         best_score = score;
-    //         best_col = col;
-    //     }
-    // }
-    // return best_col;
-    return minimax(board, g_difficulty, -__INT_MAX__, __INT_MAX__, 1).column;
+    #if DEBUG
+        Boolean *valid_locations = get_valid_locations(board);
+        int best_score = 0;
+        int best_col = random_valid_column(valid_locations);
+        for (int col = 0; col < COLS; col++) {
+            if (!valid_locations[col]) continue;
+            int** board_copy = (int**) alloca(ROWS * sizeof(int *));
+            for (int i = 0; i < ROWS; i++) {
+                board_copy[i] = (int *) alloca(COLS * sizeof(int));
+            }
+            copy_board(board, board_copy);
+            fill_column(board_copy, col, g_ai_piece);
+            int score = score_board(board_copy, g_ai_piece);
+            if (score > best_score) {
+                best_score = score;
+                best_col = col;
+            }
+        }
+        return best_col;
+    #else
+        return minimax(board, g_difficulty, -__INT_MAX__, __INT_MAX__, True).column;
+    #endif
 }
 
-BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_player) {
-    int *valid_locations = get_valid_locations(board);
-    int ai_won = check_winner(board, g_ai_piece);
-    int player_won = check_winner(board, g_player_piece);
-    int board_full = g_moves >= ROWS * COLS ? 1 : 0;
-    int is_game_over = ai_won || player_won || board_full;
+BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximazing_player) {
+    Boolean *valid_locations = get_valid_locations(board);
+    Boolean ai_won = check_winner(board, g_ai_piece);
+    Boolean player_won = check_winner(board, g_player_piece);
+    Boolean board_full = g_moves >= ROWS * COLS ? True : False;
+    Boolean is_game_over = ai_won || player_won || board_full;
     int score;
     int column;
     if (depth == 0 || is_game_over) {
         if (is_game_over) { 
             if (ai_won) {
-                return (BestMove){-1, 10000};
+                return (BestMove){-1, 100000};
             }
             else if (player_won) {
-                return (BestMove){-1, -10000};
+                return (BestMove){-1, -100000};
             } 
             // draw
             else {
@@ -492,7 +516,7 @@ BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_
             }
             copy_board(board, board_copy);
             fill_column(board_copy, col, g_ai_piece);
-            int new_score = minimax(board_copy, depth - 1, alpha, beta, 0).score;
+            int new_score = minimax(board_copy, depth - 1, alpha, beta, False).score;
             if (new_score > score) {
                 score = new_score;
                 column = col;
@@ -511,7 +535,7 @@ BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_
             }
             copy_board(board, board_copy);
             fill_column(board_copy, col, g_player_piece);
-            int new_score = minimax(board_copy, depth - 1, alpha, beta, 1).score;
+            int new_score = minimax(board_copy, depth - 1, alpha, beta, True).score;
             if (new_score < score) {
                 score = new_score;
                 column = col;
@@ -525,16 +549,16 @@ BestMove minimax(int **board, int depth, int alpha, int beta, int is_maximazing_
 }
 
 int* get_valid_locations(int **board) {
-    static int valid_columns[COLS];
+    static Boolean valid_columns[COLS];
     for (int i = 0; i < COLS; i++) {
         // if the column still not full mark it as valid (1) location, otherwise mark it as invalid (0)
-        if (board[0][i] == 0) valid_columns[i] = 1;
+        if (!board[0][i]) valid_columns[i] = True;
         else valid_columns[i] = 0;
     }
     return valid_columns;
 }
 
-int random_valid_column(int* valid_columns) {
+int random_valid_column(Boolean* valid_columns) {
     int random_col = 0;
     // return random col if it's valid
     for (int i = 0; i < 21; i++) {
@@ -631,16 +655,16 @@ int score_bucket(int* bucket, int token, int start, int end) {
     int empty_num = count_token(bucket, EMPTY, start, end);
     int opp_token_num = count_token(bucket, opp_piece, start, end);
     if (token_num == 4) {
-        score += 10000;
+        score += 100;
     }
     else if (token_num == 3 && empty_num == 1) {
-        score += 10;
-    }
-    else if (token_num == 2 && empty_num == 2) {
         score += 5;
     }
+    else if (token_num == 2 && empty_num == 2) {
+        score += 2;
+    }
     else if (opp_token_num == 3 && empty_num == 1) {
-        score -= 100;
+        score -= 4;
     }
 
     return score;
