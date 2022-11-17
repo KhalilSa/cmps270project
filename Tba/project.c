@@ -17,6 +17,7 @@
 #define MAX_INPUT 20
 
 #define DEBUG 0
+#define OLD_EVALUATION 0
 
 // Structures
 typedef struct {
@@ -473,6 +474,9 @@ int make_move(int **board) {
         }
         return best_col;
     #else
+        // the optimal move for the first move is always in the middle
+        // I'm hard coding (caching) the move to save computation
+        if (g_moves == 1) return COLS / 2;
         return minimax(board, g_difficulty, -__INT_MAX__, __INT_MAX__, True).column;
     #endif
 }
@@ -601,7 +605,9 @@ int score_board(int** board, int token) {
         for (int j = 0; j < COLS - 3; j++) {
             int start = j;
             int end = j + 4;
-            score += score_bucket(row_array, token, start, end);
+            int new_score = score_bucket(row_array, token, start, end);
+            if (new_score <= -100000) return new_score;
+            score += new_score;
         }
     }
 
@@ -614,7 +620,9 @@ int score_board(int** board, int token) {
         for (int i = 0; i < ROWS - 3; i++) {
             int start = i;
             int end = i + 4;
-            score += score_bucket(col_array, token, start, end);
+            int new_score = score_bucket(col_array, token, start, end);
+            if (new_score <= -100000) return new_score;
+            score += new_score;
         }
     }
 
@@ -626,7 +634,9 @@ int score_board(int** board, int token) {
             for (int k = 0; k < 4; k++) {
                 diagonal_bucket[k] = board[i-k][j+k];
             }
-            score += score_bucket(diagonal_bucket, token, 0, 4);
+            int new_score = score_bucket(diagonal_bucket, token, 0, 4);
+            if (new_score <= -100000) return new_score;
+            score += new_score;
             
         }
     }
@@ -638,7 +648,9 @@ int score_board(int** board, int token) {
             for (int k = 0; k < 4; k++) {
                 diagonal_bucket[k] = board[i-k][j-k];
             }
-            score += score_bucket(diagonal_bucket, token, 0, 4);
+            int new_score = score_bucket(diagonal_bucket, token, 0, 4);
+            if (new_score <= -100000) return new_score;
+            score += new_score;
         }
     }
     return score;
@@ -654,18 +666,35 @@ int score_bucket(int* bucket, int token, int start, int end) {
     int token_num = count_token(bucket, token, start, end);
     int empty_num = count_token(bucket, EMPTY, start, end);
     int opp_token_num = count_token(bucket, opp_piece, start, end);
+    #if OLD_EVALUATION 
     if (token_num == 4) {
-        score += 100;
+        score += 100000;
     }
     else if (token_num == 3 && empty_num == 1) {
-        score += 5;
+        score += 100;
     }
     else if (token_num == 2 && empty_num == 2) {
         score += 2;
-    }
+    } 
     else if (opp_token_num == 3 && empty_num == 1) {
-        score -= 4;
+            score -= 4;
+    } else if (opp_token_num == 4) {
+        score -= 100000;
     }
+    #else
+    if (opp_piece == 4) {
+        score -= 100000;
+    } else {
+        if (token_num == 4) {
+            score += 100000;
+        }
+        else if (token_num == 3 && empty_num == 1) {
+            score += 100;
+        } else if (token_num == 2 && empty_num == 2) {
+            score += 1;
+        }
+    }
+    #endif
 
     return score;
 }
