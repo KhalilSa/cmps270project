@@ -7,17 +7,22 @@
 
 // macros
 
-#define max(a,b) \
+#define MAX(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
+
+#define MIN(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
 
 #define ROWS 6
 #define COLS 7
 #define MAX_INPUT 20
 
 #define DEBUG 0
-#define OLD_EVALUATION 0
+#define OLD_EVALUATION 1
 
 // Structures
 typedef struct {
@@ -476,7 +481,7 @@ int make_move(int **board) {
     #else
         // the optimal move for the first move is always in the middle
         // I'm hard coding (caching) the move to save computation
-        if (g_moves == 1) return COLS / 2;
+        if (g_moves < 3) return COLS / 2;
         return minimax(board, g_difficulty, -__INT_MAX__, __INT_MAX__, True).column;
     #endif
 }
@@ -525,7 +530,7 @@ BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximaz
                 score = new_score;
                 column = col;
             }
-            alpha = max(alpha, score);
+            alpha = MAX(alpha, score);
             if (alpha >= beta) break;
         }
     } else {
@@ -544,7 +549,7 @@ BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximaz
                 score = new_score;
                 column = col;
             }
-            alpha = max(alpha, score);
+            beta = MIN(beta, score);
             if (alpha >= beta) break;
         }
     }
@@ -658,39 +663,41 @@ int score_board(int** board, int token) {
 
 int score_bucket(int* bucket, int token, int start, int end) {
     int opp_piece = g_player_piece;
-    if (token == g_player_piece) {
-        opp_piece = g_ai_piece;
-    }
+
     int score = 0;
 
     int token_num = count_token(bucket, token, start, end);
-    int empty_num = count_token(bucket, EMPTY, start, end);
     int opp_token_num = count_token(bucket, opp_piece, start, end);
     #if OLD_EVALUATION 
-    if (token_num == 4) {
-        score += 100000;
+    int empty_num = count_token(bucket, EMPTY, start, end);
+    if (token_num == 3 && empty_num == 1) {
+        score += 9;
     }
-    else if (token_num == 3 && empty_num == 1) {
-        score += 100;
+    if (opp_piece == 3 && empty_num == 1) {
+        score -= 9;
     }
-    else if (token_num == 2 && empty_num == 2) {
-        score += 2;
+    if (token_num == 2 && empty_num == 2) {
+        score += 3;
     } 
-    else if (opp_token_num == 3 && empty_num == 1) {
-            score -= 4;
-    } else if (opp_token_num == 4) {
-        score -= 100000;
+    if (opp_piece == 2 && empty_num == 2) {
+        score -= 3;
+    } 
+    if (opp_piece == 1 && empty_num == 3) {
+            score += 1;
+    }
+    if (opp_token_num == 1 && empty_num == 3) {
+            score -= 1;
     }
     #else
-    if (opp_piece == 4) {
+    if (opp_token_num == 4) {
         score -= 100000;
     } else {
         if (token_num == 4) {
             score += 100000;
         }
-        else if (token_num == 3 && empty_num == 1) {
+        else if (token_num == 3) {
             score += 100;
-        } else if (token_num == 2 && empty_num == 2) {
+        } else if (token_num == 2) {
             score += 1;
         }
     }
