@@ -6,6 +6,7 @@
 #include "project.h"
 
 // Global Variables
+#define AI_START 1
 
 int g_column = 0;
 int g_token = RED;
@@ -13,10 +14,18 @@ int g_player = PLAYER;
 int g_difficulty = EASY;
 int g_ai_piece, g_player_piece;
 
+
 // track how many moves the players have made so far
 unsigned int g_moves = 0;
 
+void lunch_game();
+
 int main() {
+     lunch_game();
+     return 0;
+}
+
+void lunch_game() {
     // Allocate board in the stack
     // this shouldn't cause any problem as long as ROWS and COLS are small numbers
     int** board = (int**) alloca(ROWS * sizeof(int *));
@@ -101,8 +110,12 @@ int main() {
     printf("\tMode: %s", mode == PLAYER_VS_PLAYER ? "Player vs Player\n" : "Player vs AI\n");
     print_dashed_line(40);
     
+    #if AI_START
+    g_player = AI;
+    #else
     // Randomly pick the one who starts first
     g_player = generate_random_int(PLAYER, AI);
+    #endif
     if (mode == PLAYER_VS_AI) {
         if (g_player == AI) {
             strncpy(name2, name1, MAX_INPUT);
@@ -159,5 +172,4 @@ int main() {
 
         g_moves++;
     }
-    return 0; 
 }

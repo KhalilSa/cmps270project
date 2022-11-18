@@ -7,7 +7,7 @@
 #include "board.h"
 #include "bot.h"
 
-// initialize the connect four board with zeros (empty) 
+/* initialize the connect four board with zeros (empty) */
 void init_board(int** board) {
     for (int i = 0; i < ROWS; i++) {
         for (int j = 0; j < COLS; j++) {
@@ -16,7 +16,7 @@ void init_board(int** board) {
     }
 }
 
-// choose a column to drop the token in so that the token falls to the bottom of the column depending on the current state of the board
+/* choose a column to drop the token in so that the token falls to the bottom of the column depending on the current state of the board */
 void choose(int** board, int mode) {
     char column_user_input[MAX_INPUT];
     int col;

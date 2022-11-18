@@ -5,6 +5,13 @@
 #include "utils.h"
 #include "bot.h"
 
+
+#define DEBUG_CENTER_SCORING 1
+#define DEBUG_HORIZONTAL_SCORING 1
+#define DEBUG_VERTICAL_SCORING 1
+#define DEBUG_POSDIAG_SCORING 1
+#define DEBUG_NEGDIAG_SCORING 1
+
 /*
     Makes an intellegent move
 */
@@ -36,14 +43,19 @@ int make_move(int **board) {
     #endif
 }
 
+/*
+    returns the score and the column of the best (not always optimal) possible move
+*/
 BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximazing_player) {
     Boolean *valid_locations = get_valid_locations(board);
     Boolean ai_won = check_winner(board, g_ai_piece);
     Boolean player_won = check_winner(board, g_player_piece);
     Boolean board_full = g_moves >= ROWS * COLS ? True : False;
+    
     Boolean is_game_over = ai_won || player_won || board_full;
-    int score;
-    int column;
+
+    int score, column;
+
     if (depth == 0 || is_game_over) {
         if (is_game_over) { 
             if (ai_won) {
@@ -84,8 +96,8 @@ BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximaz
             if (alpha >= beta) break;
         }
     } else {
-       score = __INT32_MAX__;
-       column = random_valid_column(valid_locations);
+        score = __INT32_MAX__;
+        column = random_valid_column(valid_locations);
         for (int col = 0; col < COLS; col++) {
             if (!valid_locations[col]) continue;
             int** board_copy = (int**) alloca(ROWS * sizeof(int *));
@@ -103,10 +115,11 @@ BestMove minimax(int **board, int depth, int alpha, int beta, Boolean is_maximaz
             if (alpha >= beta) break;
         }
     }
-
     return (BestMove) {column, score};
 }
 
+/* returns an array of booleans in which the value of the array at the index representing the column represents the availability of the column
+1 if full, 0 if it still has capacity */
 int* get_valid_locations(int **board) {
     static Boolean valid_columns[COLS];
     for (int i = 0; i < COLS; i++) {
@@ -130,17 +143,24 @@ int random_valid_column(Boolean* valid_columns) {
     return random_col;
 }
 
+/* Gives a heuristic score for the current board */
 int score_board(int** board, int token) {
     int score = 0;
-    // // Score Center Column
-    // int center_column[ROWS];
-    // int mid = COLS / 2;
-    // for (int i = 0; i < ROWS; i++) {
-    //     center_column[i] = board[i][mid];
-    // }
-    // int center_tokens_num = count_token(center_column, token, 0, ROWS);
-    // score += center_tokens_num * 3;
 
+    #if DEBUG_CENTER_SCORING
+    // Score Center Column (prefers center at the beginning of the game)
+    if (g_moves <= 6) {
+        int center_column[ROWS];
+        int mid = COLS / 2;
+        for (int i = 0; i < ROWS; i++) {
+            center_column[i] = board[i][mid];
+        }
+        int center_tokens_num = count_token(center_column, token, 0, ROWS);
+        score += center_tokens_num * 5;
+        #endif
+    }
+
+    #if DEBUG_HORIZONTAL_SCORING
     // Score Horizontal
     for (int i = 0; i < ROWS; i++) {
         // row of 7 elements
@@ -148,21 +168,23 @@ int score_board(int** board, int token) {
         for (int j = 0; j < COLS - 3; j++) {
             int start = j;
             int end = j + 4;
-            // if (i < ROWS - 1) {
-            //     for (int k = start; k < end; k++) {
-            //         if (board[i+1][k] == EMPTY) continue;
-            //     }
-            // }
+            if (i < ROWS - 1) {
+                for (int k = start; k < end; k++) {
+                    if (board[i+1][k] == EMPTY) continue;
+                }
+            }
             int new_score = score_bucket(row_array, token, start, end);
-            if (new_score <= -100000) return new_score;
             score += new_score;
         }
     }
+    #endif
 
+    #if DEBUG_VERTICAL_SCORING
     // Score Vertical
     for (int j = 0; j < COLS; j++) {
         // column of 6 elements
         int col_array[ROWS];
+
         for (int i = 0; i < ROWS; i++) {
             col_array[i] = board[i][j];
         }
@@ -170,11 +192,12 @@ int score_board(int** board, int token) {
             int start = i;
             int end = i + 4;
             int new_score = score_bucket(col_array, token, start, end);
-            if (new_score <= -100000) return new_score;
             score += new_score;
         }
     }
+    #endif
 
+    #if DEBUG_POSDIAG_SCORING
     // score Ascending diagonals
     // ascending Diagonal Check
     for (int i=3; i < ROWS; i++) {
@@ -182,37 +205,42 @@ int score_board(int** board, int token) {
             int diagonal_bucket[4];
             for (int k = 0; k < 4; k++) {
                 diagonal_bucket[k] = board[i-k][j+k];
-                // if (i != ROWS - 1 || k != 0) {
-                //     if (board[i+k+1][j+k]) continue;
-                // }
+                if (i != ROWS - 1 || k != 0) {
+                    if (board[i+k+1][j+k]) continue;
+                }
             }
             int new_score = score_bucket(diagonal_bucket, token, 0, 4);
-            if (new_score <= -100000) return new_score;
             score += new_score;
             
         }
     }
+    #endif
 
+    #if DEBUG_NEGDIAG_SCORING
     // descending Diagonal Check
     for (int i=3; i < ROWS; i++) {
         for (int j=3; j < COLS; j++) {
             int diagonal_bucket[4];
             for (int k = 0; k < 4; k++) {
                 diagonal_bucket[k] = board[i-k][j-k];
-                // if (i != ROWS - 1 || k != 0) {
-                //     if (board[i+k+1][j+k]) continue;
-                // }
+                if (i != ROWS - 1 || k != 0) {
+                    if (board[i-k+1][j-k]) continue;
+                }
             }
             int new_score = score_bucket(diagonal_bucket, token, 0, 4);
-            if (new_score <= -100000) return new_score;
             score += new_score;
         }
     }
+    #endif
     return score;
 }
 
+/* Gives a heuristic score the current bucket (window) of four tokens */
 int score_bucket(int* bucket, int token, int start, int end) {
     int opp_piece = g_player_piece;
+    if (token == g_player_piece) {
+        opp_piece = g_ai_piece;
+    }
 
     int score = 0;
 
@@ -220,23 +248,20 @@ int score_bucket(int* bucket, int token, int start, int end) {
     int opp_token_num = count_token(bucket, opp_piece, start, end);
     #if OLD_EVALUATION 
     int empty_num = count_token(bucket, EMPTY, start, end);
-    if (token_num == 3 && empty_num == 1) {
-        score += 9;
-    }
-    if (opp_piece == 3 && empty_num == 1) {
-        score -= 5;
-    }
-    if (token_num == 2 && empty_num == 2) {
+    if (token_num == 4) {
+        score += 100001;
+    } else if (token_num == 3 && empty_num == 1) {
+        
+        score += 10;
+    } else if (token_num == 2 && empty_num == 2) {
         score += 3;
-    } 
-    if (opp_piece == 2 && empty_num == 2) {
-        score -= 2;
-    } 
-    if (opp_piece == 1 && empty_num == 3) {
-            score += 1;
     }
-    if (opp_token_num == 1 && empty_num == 3) {
-            score -= 1;
+    
+    if (opp_token_num == 4) {
+        score -= 100000;
+    }
+    else if (opp_token_num == 3 && empty_num == 1) {
+        score -= 11;
     }
     #else
     if (opp_token_num == 4) {
@@ -246,64 +271,12 @@ int score_bucket(int* bucket, int token, int start, int end) {
             score += 100000;
         }
         else if (token_num == 3) {
-            score += 100;
+            score += 10;
         } else if (token_num == 2) {
-            score += 1;
+            score += 5;
         }
     }
     #endif
 
     return score;
 }
-
-
-// /*
-//  * Recursively solve a connect 4 position using negamax variant of min-max algorithm.
-//  * @return the score of a position:
-//  *  - 0 for a draw game
-//  *  - positive score if you can win whatever your opponent is playing. Your score is
-//  *    the number of moves before the end you can win (the faster you win, the higher your score)
-//  *  - negative score if your opponent can force you to lose. Your score is the oposite of 
-//  *    the number of moves before the end you will lose (the faster you lose, the lower your score).
-//  */
-// BestMove negamax(int** board, int moves_num, int alpha, int beta) {
-//   if(moves_num == COLS * ROWS) // check for draw game
-//     return (BestMove){-1, 0}; 
-
-//   Boolean *valid_locations = get_valid_locations(board);
-//     Boolean ai_won = check_winner(board, g_ai_piece);
-//     Boolean player_won = check_winner(board, g_player_piece);
-//     Boolean is_winning_move = ai_won || player_won;
-//     int best_col = random_valid_column(valid_locations);
-//   for(int x = 0; x < COLS; x++) // check if current player can win next move
-//     if(valid_locations[x] && is_winning_move) 
-//       return (BestMove){x, (COLS*ROWS+1 - moves_num)/2};
-
-//   int max = (COLS*ROWS-1 - moves_num)/2;	// upper bound of our score as we cannot win immediately
-//   if(beta > max) {
-//     beta = max;                     // there is no need to keep beta above our max possible score.
-//     if(alpha >= beta) return (BestMove){-1, beta};  // prune the exploration if the [alpha;beta] window is empty.
-//   }
-//   for(int x = 0; x < COLS; x++) // compute the score of all possible next move and keep the best one
-//     if(valid_locations[x]) {
-//       int** board_copy = (int**) alloca(ROWS * sizeof(int *));
-//       for (int i = 0; i < ROWS; i++) {
-//         board_copy[i] = (int *) alloca(COLS * sizeof(int));
-//       }
-//       int opp_piece = g_ai_piece;
-//       if (g_token == g_ai_piece) {
-//         opp_piece = g_player_piece;
-//       }
-//       copy_board(board, board_copy);
-//       fill_column(board_copy, x, opp_piece);              // It's opponent turn in P2 position after current player plays x column.
-//       int score = -negamax(board, g_moves + 1, -beta, -alpha).score; // explore opponent's score within [-beta;-alpha] windows:
-//       // no need to have good precision for score better than beta (opponent's score worse than -beta)
-//       // no need to check for score worse than alpha (opponent's score worse better than -alpha)
-
-//       if(score >= beta) return (BestMove){x, score};  // prune the exploration if we find a possible move better than what we were looking for.
-//       if(score > alpha) {alpha = score; best_col = x;}// reduce the [alpha;beta] window for next exploration, as we only 
-//       // need to search for a position that is better than the best so far.ck of best possible score so far.
-//     }
-
-//   return (BestMove){best_col, alpha};
-// }

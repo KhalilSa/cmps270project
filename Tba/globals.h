@@ -18,14 +18,14 @@
 enum MODE {PLAYER_VS_PLAYER, PLAYER_VS_AI};
 enum TOKEN {EMPTY, RED, YELLOW};
 enum AGENT {PLAYER, AI};
-enum AI_DIFFICULTY {RANDOM, EASY = 2, MEDIUM = 4, HARD = 6};
+enum AI_DIFFICULTY {RANDOM, EASY = 3, MEDIUM = 5, HARD = 8};
 
 #define ROWS 6
 #define COLS 7
 #define MAX_INPUT 20
 
 #define DEBUG 0
-#define OLD_EVALUATION 0
+#define OLD_EVALUATION 1
 
 // Global Variables
 
