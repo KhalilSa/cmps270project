@@ -206,7 +206,7 @@ int score_board(int** board, int token) {
             for (int k = 0; k < 4; k++) {
                 diagonal_bucket[k] = board[i-k][j+k];
                 if (i != ROWS - 1 || k != 0) {
-                    if (board[i+k+1][j+k]) continue;
+                    if (board[i-k+1][j+k]) continue;
                 }
             }
             int new_score = score_bucket(diagonal_bucket, token, 0, 4);
